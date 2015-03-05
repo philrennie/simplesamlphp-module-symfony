@@ -11,9 +11,6 @@
             "email": "jeanbadel@gmail.com"
         }
     ],
-    "extra": {
-        "ssp-mixedcase-module-name": "symfonyAuth"
-    },
     "require": {
         "simplesamlphp/composer-module-installer": "~1.0",
         "symfony/security-core": "2.6.*"
