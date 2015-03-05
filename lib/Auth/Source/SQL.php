@@ -8,7 +8,8 @@
  *
  * @package simpleSAMLphp
  */
-class sspmod_symfonyauth_Auth_Source_SQL extends sspmod_core_Auth_UserPassBase {
+
+class sspmod_symfony_Auth_Source_SQL extends sspmod_core_Auth_UserPassBase {
 
 
 	/**
@@ -30,11 +31,14 @@ class sspmod_symfonyauth_Auth_Source_SQL extends sspmod_core_Auth_UserPassBase {
 
 
 	/**
-	 * The query we should use to retrieve the attributes for the user.
-	 *
-	 * The username and password will be available as :username and :password.
+	 * Table name where the users are stored.
 	 */
-	private $query;
+	private $table_user_name;
+
+	/**
+	* The password encoder
+	*/
+	private $encoder;
 
 
 	/**
@@ -51,7 +55,7 @@ class sspmod_symfonyauth_Auth_Source_SQL extends sspmod_core_Auth_UserPassBase {
 		parent::__construct($info, $config);
 
 		/* Make sure that all required parameters are present. */
-		foreach (array('dsn', 'username', 'password', 'query') as $param) {
+		foreach (array('dsn', 'username', 'password', 'table_user_name', 'hash') as $param) {
 			if (!array_key_exists($param, $config)) {
 				throw new Exception('Missing required attribute \'' . $param .
 					'\' for authentication source ' . $this->authId);
@@ -68,7 +72,9 @@ class sspmod_symfonyauth_Auth_Source_SQL extends sspmod_core_Auth_UserPassBase {
 		$this->dsn = $config['dsn'];
 		$this->username = $config['username'];
 		$this->password = $config['password'];
-		$this->query = $config['query'];
+		$this->table_user_name = $config['table_user_name'];
+		$this->encoder = new Symfony\Component\Security\Core\Encoder\MessageDigestPasswordEncoder($config['hash']);
+
 	}
 
 
@@ -126,33 +132,51 @@ class sspmod_symfonyauth_Auth_Source_SQL extends sspmod_core_Auth_UserPassBase {
 
 		$db = $this->connect();
 
+		$test = sprintf("SELECT * FROM `%s` WHERE `username` = :username", $this->table_user_name);
+
 		try {
-			$sth = $db->prepare($this->query);
+			$sth = $db->prepare(sprintf("SELECT * FROM `%s` WHERE `username` = :username", $this->table_user_name));
 		} catch (PDOException $e) {
-			throw new Exception('sqlauth:' . $this->authId .
+			throw new Exception('symfony:' . $this->authId .
 				': - Failed to prepare query: ' . $e->getMessage());
 		}
 
 		try {
-			$res = $sth->execute(array('username' => $username, 'password' => $password));
+			$res = $sth->execute(array('username' => $username));
 		} catch (PDOException $e) {
-			throw new Exception('sqlauth:' . $this->authId .
+			throw new Exception('symfony:' . $this->authId .
 				': - Failed to execute query: ' . $e->getMessage());
 		}
 
 		try {
-			$data = $sth->fetchAll(PDO::FETCH_ASSOC);
+			$data = $sth->fetch(PDO::FETCH_ASSOC);
 		} catch (PDOException $e) {
-			throw new Exception('sqlauth:' . $this->authId .
+			throw new Exception('symfony:' . $this->authId .
 				': - Failed to fetch result set: ' . $e->getMessage());
 		}
 
-		SimpleSAML_Logger::info('sqlauth:' . $this->authId . ': Got ' . count($data) .
+		SimpleSAML_Logger::info('symfony:' . $this->authId . ': Got ' . count($data) .
 			' rows from database');
 
-		if (count($data) === 0) {
-			/* No rows returned - invalid username/password. */
-			SimpleSAML_Logger::error('sqlauth:' . $this->authId .
+		if (!$data) {
+			/* No rows returned - invalid username. */
+			SimpleSAML_Logger::error('symfony:' . $this->authId .
+				': No rows in result set. Probably wrong username/password.');
+			throw new SimpleSAML_Error_Error('WRONGUSERPASS');
+		}
+
+
+		//Check password
+		foreach (array('password', 'salt') as $param) {
+			if (!array_key_exists($param, $data)) {
+				throw new Exception('Missing field on table '. $this->table_user_name .' \'' . $param .
+					'\' for password resolution ' . $this->authId);
+			}
+		}
+
+		if (!$this->encoder->isPasswordValid($data['password'], $password, $data['salt'])) {
+			/* No rows returned - invalid password. */
+			SimpleSAML_Logger::error('symfony:' . $this->authId .
 				': No rows in result set. Probably wrong username/password.');
 			throw new SimpleSAML_Error_Error('WRONGUSERPASS');
 		}
@@ -162,29 +186,29 @@ class sspmod_symfonyauth_Auth_Source_SQL extends sspmod_core_Auth_UserPassBase {
 		 * duplicate values will be skipped. All values will be converted to strings.
 		 */
 		$attributes = array();
-		foreach ($data as $row) {
-			foreach ($row as $name => $value) {
 
-				if ($value === NULL) {
-					continue;
-				}
+		foreach ($data as $name => $value) {
 
-				$value = (string)$value;
-
-				if (!array_key_exists($name, $attributes)) {
-					$attributes[$name] = array();
-				}
-
-				if (in_array($value, $attributes[$name], TRUE)) {
-					/* Value already exists in attribute. */
-					continue;
-				}
-
-				$attributes[$name][] = $value;
+			if ($value === NULL) {
+				continue;
 			}
+
+			$value = (string)$value;
+
+			if (!array_key_exists($name, $attributes)) {
+				$attributes[$name] = array();
+			}
+
+			if (in_array($value, $attributes[$name], TRUE)) {
+				/* Value already exists in attribute. */
+				continue;
+			}
+
+			$attributes[$name][] = $value;
 		}
 
-		SimpleSAML_Logger::info('sqlauth:' . $this->authId . ': Attributes: ' .
+
+		SimpleSAML_Logger::info('symfony:' . $this->authId . ': Attributes: ' .
 			implode(',', array_keys($attributes)));
 
 		return $attributes;
