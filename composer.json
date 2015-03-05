@@ -12,7 +12,7 @@
         }
     ],
     "extra": {
-        "ssp-mixedcase-module-name": "authsymfony"
+        "ssp-mixedcase-module-name": "symfony"
     },
     "require": {
         "simplesamlphp/composer-module-installer": "~1.0",
