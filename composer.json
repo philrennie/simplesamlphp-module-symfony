@@ -1,0 +1,21 @@
+{
+    "name": "jbdelhommeau/simplesamlphp-module-symfony",
+    "description": "A SimpleSAMLphp module adding support for the Symfony2 default Password encoder.",
+    "type": "simplesamlphp-module",
+    "keywords": [ "symfony", "provider" ],
+    "homepage": "http://simplesamlphp.org",
+    "license": "LGPL-2.1",
+    "authors": [
+        {
+            "name": "Jean-Baptiste Delhommeau",
+            "email": "jeanbadel@gmail.com"
+        }
+    ],
+    "extra": {
+        "ssp-mixedcase-module-name": "symfonyAuth"
+    },
+    "require": {
+        "simplesamlphp/composer-module-installer": "~1.0",
+        "symfony/security-core": "dev-master"
+    }
+}
