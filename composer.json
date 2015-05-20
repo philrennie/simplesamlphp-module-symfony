@@ -1,5 +1,5 @@
 {
-    "name": "jbdelhommeau/simplesamlphp-module-symfony",
+    "name": "philrennie/simplesamlphp-module-symfony",
     "description": "A SimpleSAMLphp module adding support for the Symfony2 default Password encoder.",
     "type": "simplesamlphp-module",
     "keywords": [ "symfony", "provider" ],
@@ -7,8 +7,12 @@
     "license": "LGPL-2.1",
     "authors": [
         {
-            "name": "Jean-Baptiste Delhommeau",
-            "email": "jeanbadel@gmail.com"
+            "name": "Phil Rennie",
+            "email": "phil@benunu.com"
+        },
+        {
+          "name": "Jean-Baptiste Delhommeau",
+          "email": "jeanbadel@gmail.com"
         }
     ],
     "require": {
